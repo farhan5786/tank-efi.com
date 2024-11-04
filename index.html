@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tank EFI </title>
+<link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+<style>
+  body { 
+    overflow: hidden; font-family: Arial, sans-serif; text-align: center; }
+  #gameArea { border-radius: 20px; position: relative; width: 800px; height: 600px; margin: auto; background-color: #FFF; overflow: hidden; border: 2px solid red; }
+  .tank { width: 40px; height: 40px; position: absolute; border-radius: 5px; }
+  .tank1 { background: seagreen; left: 50px; top: 50px; }
+  .tank2 { background-color: red; right: 50px; bottom: 50px; }
+  .bullet { width: 10px; height: 10px; background-color: yellow; position: absolute; border-radius: 50%; }
+  .hpContainer { position: absolute; display: flex; align-items: center; }
+  .hpBar { width: 100px; height: 15px; background-color: crimson; border-radius: 5px; margin-left: 5px; }
+  .hpText { color: black; font-size: 11px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="gameArea">
+  <div class="tank tank1" id="tank1"></div>
+  <div class="hpContainer" id="hp1Container" style="left: 110px; top: 50px;">
+    <div class="hpText">[HP]  <span id="hp1Text">100% <i class='bx bx-cross'></i></span></div>
+    <div class="hpBar" id="hp1Bar"></div>
+  </div>
+  <div class="tank tank2" id="tank2"></div>
+  <div class="hpContainer" id="hp2Container" style="right: 110px; bottom: 50px;">
+    <div class="hpBar" id="hp2Bar"></div>
+    <div class="hpText"> [HP] <span id="hp2Text">100% <i class='bx bx-cross'></i></span></div>
+  </div>
+</div>
+
+<script>
+  const gameArea = document.getElementById("gameArea");
+  const tank1 = document.getElementById("tank1");
+  const tank2 = document.getElementById("tank2");
+  const hp1Bar = document.getElementById("hp1Bar");
+  const hp2Bar = document.getElementById("hp2Bar");
+  const hp1Text = document.getElementById("hp1Text");
+  const hp2Text = document.getElementById("hp2Text");
+
+  let hp1 = 100;
+  let hp2 = 100;
+  let tank1Position = { x: 50, y: 50 };
+  let tank2Position = { x: 700, y: 500 };
+
+  function resetGame() {
+    hp1 = 100;
+    hp2 = 100;
+    tank1Position = { x: 50, y: 50 };
+    tank2Position = { x: 700, y: 500 };
+    updateTankPosition(tank1, tank1Position);
+    updateTankPosition(tank2, tank2Position);
+    updateHealthDisplay(hp1Bar, hp1Text, hp1);
+    updateHealthDisplay(hp2Bar, hp2Text, hp2);
+  }
+
+  function updateTankPosition(tank, position) {
+    tank.style.left = position.x + 'px';
+    tank.style.top = position.y + 'px';
+  }
+
+  function updateHealthDisplay(hpBar, hpText, hp) {
+    hpBar.style.width = hp + 'px';
+    hpText.textContent = hp + '%';
+  }
+
+  function shootBullet(shooterPosition, targetPosition, shooterTank) {
+    const bullet = document.createElement("div");
+    bullet.className = "bullet";
+    bullet.style.left = shooterPosition.x + 'px';
+    bullet.style.top = shooterPosition.y + 'px';
+    gameArea.appendChild(bullet);
+
+    const angle = Math.atan2(targetPosition.y - shooterPosition.y, targetPosition.x - shooterPosition.x);
+    const speed = 5; // bullet speed
+
+    const interval = setInterval(() => {
+      // Move bullet in the direction of the target position
+
+      bullet.style.left = parseInt(bullet.style.left) + Math.cos(angle) * speed + 'px';
+      bullet.style.top = parseInt(bullet.style.top) + Math.sin(angle) * speed + 'px';
+
+      const bulletRect = bullet.getBoundingClientRect();
+      const tank1Rect = tank1.getBoundingClientRect();
+      const tank2Rect = tank2.getBoundingClientRect();
+
+      // Check for collision with the opposite tank only
+      if (shooterTank === tank1 && bulletRect.left < tank2Rect.right && bulletRect.right > tank2Rect.left &&
+          bulletRect.top < tank2Rect.bottom && bulletRect.bottom > tank2Rect.top) {
+        clearInterval(interval);
+        bullet.remove();
+        hp2 = Math.max(0, hp2 - 10);
+        updateHealthDisplay(hp2Bar, hp2Text, hp2);
+        if (hp2 <= 0) {
+          alert("GREEN TANK WINS !");
+          resetGame(); // Reset game on win
+        }
+      }
+
+      if (shooterTank === tank2 && bulletRect.left < tank1Rect.right && bulletRect.right > tank1Rect.left &&
+          bulletRect.top < tank1Rect.bottom && bulletRect.bottom > tank1Rect.top) {
+        clearInterval(interval);
+        bullet.remove();
+        hp1 = Math.max(0, hp1 - 10);
+        updateHealthDisplay(hp1Bar, hp1Text, hp1);
+        if (hp1 <= 0) {
+          alert("RED TANK WINS!");
+          resetGame(); // Reset game on win
+        }
+      }
+
+      // Remove bullet if it goes outside game area
+      if (
+        parseInt(bullet.style.left) < 0 || 
+        parseInt(bullet.style.left) > 800 || 
+        parseInt(bullet.style.top) < 0 || 
+        parseInt(bullet.style.top) > 600
+      ) {
+        clearInterval(interval);
+        bullet.remove();
+      }
+    }, 20);
+  }
+
+  // Movement and shooting controls
+  document.addEventListener("keydown", (e) => {
+    switch (e.key) {
+      // Tank 1 movement
+      case "w":
+        tank1Position.y = Math.max(0, tank1Position.y - 10);
+        break;
+      case "s":
+        tank1Position.y = Math.min(550, tank1Position.y + 10);
+        break;
+      case "a":
+        tank1Position.x = Math.max(0, tank1Position.x - 10);
+        break;
+      case "d":
+        tank1Position.x = Math.min(750, tank1Position.x + 10);
+        break;
+
+      // Tank 2 movement
+      case "ArrowUp":
+        tank2Position.y = Math.max(0, tank2Position.y - 10);
+        break;
+      case "ArrowDown":
+        tank2Position.y = Math.min(550, tank2Position.y + 10);
+        break;
+      case "ArrowLeft":
+        tank2Position.x = Math.max(0, tank2Position.x - 10);
+        break;
+      case "ArrowRight":
+        tank2Position.x = Math.min(750, tank2Position.x + 10);
+        break;
+
+      // Shooting
+      case " ":
+        shootBullet(tank1Position, tank2Position, tank1);
+        break;
+      case "Enter":
+        shootBullet(tank2Position, tank1Position, tank2);
+        break;
+    }
+    updateTankPosition(tank1, tank1Position);
+    updateTankPosition(tank2, tank2Position);
+
+    // Update HP container positions
+    document.getElementById("hp1Container").style.left = (tank1Position.x + 60) + "px";
+    document.getElementById("hp1Container").style.top = (tank1Position.y) + "px";
+    document.getElementById("hp2Container").style.left = (tank2Position.x - 200) + "px";
+    document.getElementById("hp2Container").style.top = (tank2Position.y) + "px";
+  });
+</script>
+
+</body>
+</html>
